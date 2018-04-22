@@ -44,7 +44,7 @@ score = 0
 grav_counter = 0
 
 jump_sheet = gamebox.load_sprite_sheet("game-assets/jump-sprite1.png", 5, 1)
-player = gamebox.from_image(200, 200, jump_sheet[0])
+player = gamebox.from_image(200, 350, jump_sheet[0])
 player.speedy = 0
 platforms = [gamebox.from_color(0, 500, (0, 153, 76), 100, 30),
              gamebox.from_color(100, 500, (0, 153, 76), 100, 30),
@@ -62,12 +62,17 @@ start_game = False
 start_screen = gamebox.from_text(390, 250, "Press Space to Start", 70, "white")
 time = 0
 can_move = True
-controls = gamebox.from_text(390,450, "Controls:Space to Move, L-Click to Attack", 45, "white")
+controls = gamebox.from_text(390, 450, "Controls:Space to Move, L-Click to Attack", 45, "white")
+enemy = [gamebox.from_image(0, 500, 'game-assets/enemy.png')]
+enemy_live = 0
+spike = gamebox.from_text(200, 100, 'spike', 45, 'orange')
+spike_counter = 0
+
 
 
 def tick(keys):
     global jump_sheet, player, grav_counter, platforms, plat_counter, start_game, start_screen, time, can_move
-    global controls
+    global controls, enemy, enemy_live, spike, spike_counter
 
     # Grey display
     camera.clear('grey')
@@ -84,6 +89,8 @@ def tick(keys):
     if start_game is True:
 
         time += 1
+
+        spike_counter += 1
         # Gravity
 
         if grav_counter <= 30:
@@ -100,11 +107,19 @@ def tick(keys):
 
         # Jumps when space bar is pressed
         if pygame.K_SPACE in keys and can_move is True:
+            spike_counter = 0
             player.speedy = -30
+            y_location = 500 + random.randrange(-18, 18, 3)
             player.image = jump_sheet[1]
             for platform in platforms:
                 platform.x -= 100
-            platforms.append(gamebox.from_color(900, 500 + random.randrange(-18, 18, 3), (0, 153, 76), 100, 30))
+            # platforms.append(gamebox.from_color(900, 500 + random.randrange(-18, 18, 3), (0, 153, 76), 100, 30))
+            platforms.append(gamebox.from_color(900, y_location, (0, 153, 76), 100, 30))
+            enemy_live = random.randrange(0, 100)
+            for i in enemy:
+                i.x -= 100
+            if enemy_live > 70:
+                enemy.append(gamebox.from_image(900, y_location - 40, 'game-assets/enemy.png'))
             can_move = False
             keys.clear()
 
@@ -114,6 +129,12 @@ def tick(keys):
             player.speedy = 0
             player.image = jump_sheet[0]
             can_move = True
+
+        if player.touches(enemy[0]):
+            end_game = gamebox.from_text(390, 250, 'YOU DEAD', 69, 'black')
+            camera.draw(end_game)
+            camera.display()
+            gamebox.pause()
 
         # Player is moving
         player.move_speed()
@@ -126,6 +147,23 @@ def tick(keys):
         for platform in platforms:
             # platform.move_speed()
             camera.draw(platform)
+
+        for i in enemy:
+            camera.draw(i)
+
+        camera.draw(spike)
+
+        if spike_counter >= 60:
+            spike.speedy = 20
+            spike.move_speed()
+
+        if player.touches(spike):
+            end_game = gamebox.from_text(390, 250, 'YOU DEAD', 69, 'black')
+            camera.draw(end_game)
+            camera.display()
+            gamebox.pause()
+
+
 
         # Sets time and scoreboard
         seconds = str(int((time / ticks_per_second)))
